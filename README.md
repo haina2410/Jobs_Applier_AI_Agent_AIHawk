@@ -7,7 +7,38 @@
 
 AIHawk's core architecture remains **open source**, allowing developers to inspect and extend the codebase. However, due to copyright considerations, we have removed all third‑party provider plugins from this repository.
 
+## Installation
 
+```bash
+uv venv
+uv pip install -r requirements.txt
+```
+
+## Usage
+
+```bash
+python main.py
+```
+
+The app will prompt you to choose between generating a generic resume, a job-tailored resume, or a tailored cover letter, then guide you through style selection.
+
+## Configuration
+
+Set LLM provider and model in `config.py`:
+- `LLM_MODEL_TYPE` — `openai`, `claude`, `ollama`, `gemini`, `huggingface`, or `perplexity`
+- `LLM_MODEL` — model name (e.g., `gpt-4o-mini`)
+- `LLM_API_URL` — optional custom base URL for OpenAI-compatible APIs (e.g., OpenRouter)
+
+User data goes in `data_folder/` (see `data_folder_example/` for templates):
+- `secrets.yaml` — LLM API key
+- `work_preferences.yaml` — job preferences (experience levels, job types, blacklists)
+- `plain_text_resume.yaml` — your resume content in YAML format
+
+## Testing
+
+```bash
+pytest
+```
 
 ---
 

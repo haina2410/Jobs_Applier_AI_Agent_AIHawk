@@ -10,7 +10,7 @@ AIHawk is an AI-powered job application tool that uses LLMs (OpenAI, Claude, Oll
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
 # Run the application
 python main.py
