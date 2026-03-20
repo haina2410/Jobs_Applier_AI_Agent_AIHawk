@@ -1,7 +1,3 @@
-
-<div align="center">
-
-
 # AIHawk: The first Jobs Applier AI Web Agent
 
 
