@@ -20,6 +20,13 @@ uv pip install -r requirements.txt
 python main.py
 ```
 
+## Build tex cv
+Quick build command
+```
+docker run --rm -v $(pwd)/data_folder:/src -v $(pwd)/data_folder/output:/out -w /src texlive/texlive \
+  pdflatex -interaction=nonstopmode -output-directory=/out nam-cv.tex
+```
+
 The app will prompt you to choose between generating a generic resume, a job-tailored resume, or a tailored cover letter, then guide you through style selection.
 
 ## Configuration

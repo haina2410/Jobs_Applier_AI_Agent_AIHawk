@@ -8,6 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+import config as cfg
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from loguru import logger
 from pathlib import Path
@@ -34,12 +35,16 @@ logger.add(log_path / "gpt_resume.log", rotation="1 day", compression="zip", ret
 
 class LLMParser:
     def __init__(self, openai_api_key):
+        kwargs = dict(model_name=cfg.LLM_MODEL, openai_api_key=openai_api_key, temperature=0.4)
+        if cfg.LLM_API_URL:
+            kwargs["openai_api_base"] = cfg.LLM_API_URL
         self.llm = LoggerChatModel(
-            ChatOpenAI(
-                model_name="gpt-4o-mini", openai_api_key=openai_api_key, temperature=0.4
-            )
+            ChatOpenAI(**kwargs)
         )
-        self.llm_embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)  # Initialize embeddings
+        emb_kwargs = dict(openai_api_key=openai_api_key)
+        if cfg.LLM_API_URL:
+            emb_kwargs["openai_api_base"] = cfg.LLM_API_URL
+        self.llm_embeddings = OpenAIEmbeddings(**emb_kwargs)
         self.vectorstore = None  # Will be initialized after document loading
 
     @staticmethod

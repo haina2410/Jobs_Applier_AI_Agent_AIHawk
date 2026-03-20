@@ -1,47 +1,46 @@
 remote: true
-hybrid: true
-onsite: true
+hybrid: false
+onsite: false
 
 experience_level:
   internship: false
   entry: true
   associate: true
-  mid_senior_level: true
+  mid_senior_level: false
   director: false
   executive: false
 
 job_types:
-  full_time: true
-  contract: false
-  part_time: false
+  full_time: false
+  contract: true
+  part_time: true
   temporary: true
   internship: false
-  other: false
-  volunteer: true
+  other: true
+  volunteer: false
 
 date:
   all_time: false
   month: false
-  week: false
-  24_hours: true
+  week: true
+  24_hours: false
 
 positions:
-  - Software engineer
+  - Software Engineer
+  - Frontend Developer
+  - Full-stack Developer
+  - Web Developer
 
 locations:
-  - Germany
+  - Remote
 
 apply_once_at_company: true
 
-distance: 100
+distance: 0
 
 company_blacklist:
-  - wayfair
   - Crossover
 
-title_blacklist:
-  - word1
-  - word2
+title_blacklist: []
 
-location_blacklist:
-  - Brazil
+location_blacklist: []

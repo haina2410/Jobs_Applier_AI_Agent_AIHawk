@@ -1,0 +1,268 @@
+%-------------------------
+% Resume in Latex
+% Author
+% License : MIT
+%------------------------
+
+%---- Required Packages and Functions ----
+
+\documentclass[a4paper,12pt]{article}
+\usepackage{latexsym}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage[vietnamese]{babel}
+\usepackage{ragged2e}
+\usepackage[empty]{fullpage}
+\usepackage{wrapfig}
+\usepackage{lipsum}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{geometry}
+\usepackage{marvosym}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{fontawesome7}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{cfr-lm}
+\usepackage[T1]{fontenc}
+\setlength{\footskip}{4.08003pt} 
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\geometry{left=1.4cm, top=1cm, right=1.4cm, bottom=1cm}
+% Adjust margins
+%\addtolength{\oddsidemargin}{-0.5in}
+%\addtolength{\evensidemargin}{-0.5in}
+%\addtolength{\textwidth}{1in}
+\usepackage[most]{tcolorbox}
+\tcbset{
+	frame code={}
+	center title,
+	left=0pt,
+	right=0pt,
+	top=0pt,
+	bottom=0pt,
+	colback=gray!20,
+	colframe=white,
+	width=\dimexpr\textwidth\relax,
+	enlarge left by=-2mm,
+	boxsep=4pt,
+	arc=0pt,outer arc=0pt,
+}
+
+\urlstyle{same}
+
+\raggedright
+\setlength{\footskip}{4.08003pt}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-7pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[2]{
+  \item{
+    \textbf{#1}{\hspace{0.5mm}#2 \vspace{-0.5mm}}
+  }
+}
+
+\newcommand{\resumePOR}[3]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1}\hspace{0.3mm}#2 & \textit{\small{#3}} 
+    \end{tabular*}
+    \vspace{-2mm}
+}
+
+\newcommand{\resumeSubheading}[4]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.98\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1} & \textit{\footnotesize{#4}} \\
+        \textit{\footnotesize{#3}} &  \footnotesize{#2}\\
+    \end{tabular*}
+    \vspace{-2.4mm}
+}
+
+\newcommand{\resumeProject}[4]{
+\vspace{0.5mm}\item
+    \begin{tabular*}{0.98\textwidth}[t]{l@{\extracolsep{\fill}}r}
+        \textbf{#1} & \textit{\footnotesize{#3}} \\
+        \footnotesize{\textit{#2}} & \footnotesize{#4}
+    \end{tabular*}
+    \vspace{-2.4mm}
+}
+
+\newcommand{\resumeSubItem}[2]{\resumeItem{#1}{#2}\vspace{-4pt}}
+
+% \renewcommand{\labelitemii}{$\circ$}
+\renewcommand{\labelitemi}{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*,labelsep=0mm]}
+\newcommand{\resumeHeadingSkillStart}{\begin{itemize}[leftmargin=*,itemsep=1.7mm, rightmargin=2ex]}
+\newcommand{\resumeItemListStart}{\begin{justify}\begin{itemize}[leftmargin=3ex, rightmargin=2ex, noitemsep,labelsep=1.2mm,itemsep=0mm]\small}
+
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}\vspace{2mm}}
+\newcommand{\resumeHeadingSkillEnd}{\end{itemize}\vspace{-2mm}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\end{justify}\vspace{-2mm}}
+\newcommand{\cvsection}[1]{%
+\vspace{2mm}
+\begin{tcolorbox}
+    \textbf{\large #1}
+\end{tcolorbox}
+    \vspace{-4mm}
+}
+
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}%
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
+\newcolumntype{C}{>{\centering\arraybackslash}X}%
+%---- End of Packages and Functions ------
+
+%-------------------------------------------
+%%%%%%  CV STARTS HERE  %%%%%%%%%%%
+%%%%%% DEFINE ELEMENTS HERE %%%%%%%
+\newcommand{\name}{Đinh Dương Hải Nam} % Your Name
+\newcommand{\course}{Software Engineer} % Your Program
+% \newcommand{\roll}{21127113} % Your Roll No.
+\newcommand{\phone}{0906768591} % Your Phone Number
+\newcommand{\emaila}{hainam7076@gmail.com} %Email 1
+% \newcommand{\emailb}{ddhnam21@clc.fitus.edu.vn} %Email 2
+
+
+
+
+\begin{document}
+\fontfamily{cmr}\selectfont
+%----------HEADING-----------------
+
+
+\parbox{2.6cm}{%
+\includegraphics[width=2.35cm,clip]{nam.jpg}
+}
+\parbox{\dimexpr\linewidth-2.9cm\relax}{
+\begin{tabularx}{\linewidth}{L r} \\
+    \textbf{\Large \name} & {\raisebox{0.0\height}{\footnotesize \faPhone}\ \phone}\\
+    {Software Engineer} & \href{mailto:\emaila}{\raisebox{0.0\height}{\footnotesize \faEnvelope}\ {\emaila}} \\
+    {Ho Chi Minh City University of Science} &  \href{https://www.facebook.com/haina2410/}{\raisebox{0.0\height}{\footnotesize \faFacebook}\ {haina2410}}\\
+    &  \href{https://github.com/haina2410}{\raisebox{0.0\height}{\footnotesize \faGithub}\ {haina2410}} \\
+    % {Ho Chi Minh City University of Science, HCMUS} & \href{https://www.yourLinkedinProfile.com/in/}{\raisebox{0.0\height}{\footnotesize \faLinkedin}\ {LinkedIn Profile}}
+\end{tabularx}
+}
+
+
+%-----------Technical skills-----------------
+\section{\textbf{About me}}
+\small{Software Engineer at Ascenda Loyalty building scalable loyalty platforms serving millions of customers across leading financial institutions. Skilled in \textbf{TypeScript, React, and Next.js}, with production experience in \textbf{Ruby on Rails}, \textbf{k6 load testing}, and \textbf{AWS}.} \\
+\vspace{2pt}
+\textbf{Area of Interest}{: Software Engineer (Web / Full-stack)}
+\vspace{-8pt}
+
+
+%-----------Certifications-----------------
+\section{\textbf{Certifications}}
+\vspace{-0.4mm}
+\resumeSubHeadingListStart
+\resumePOR{\href{https://www.credly.com/badges/4a060037-e58e-4d3a-b5b5-8c1c7f71a873}{\raisebox{0.0\height}{\footnotesize \faAws} Certified Solutions Architect}}{ – Associate}{2026-2029}
+\resumePOR{IELTS}{ 7.0}{2021}
+\resumeSubHeadingListEnd
+\vspace{-7mm}
+
+
+%-----------Positions of Responsibility-----------------
+% \section{\textbf{Positions of Responsibility}}
+% \vspace{-0.4mm}
+% \resumeSubHeadingListStart
+% \resumePOR{Position, } % Position
+%     {} %Club,Event
+%     {Position tenure} %Tenure Period
+% \resumePOR{Position, } % Position
+%     {Club or Event} %Club,Event
+%     {Position tenure} %Tenure Period
+% \resumeSubHeadingListEnd
+% \vspace{-5mm}
+
+
+%-----------Tech Stack-----------------
+\section{\textbf{Skills}}
+\vspace{-0.4mm}
+\resumeItemListStart
+    \item \textbf{Languages:} TypeScript, Ruby, JavaScript
+    \item \textbf{Frontend:} React, Next.js, React Native, Zustand
+    \item \textbf{Backend \& DB:} Ruby on Rails, Node.js, PostgreSQL, Redis
+    \item \textbf{DevOps \& Cloud:} Docker, GitHub Actions, AWS, k6, Grafana, Sentry
+\resumeItemListEnd
+
+\vspace{-3mm}
+
+
+
+
+% -----------EXPERIENCE-----------------
+\section{\textbf{Experience}}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Ascenda Loyalty}{Sala. District 2 - Ho Chi Minh City}
+      {Software Engineer Intern $\rightarrow$ Software Engineer}{02/2025 - Present}
+      \vspace{-2.0mm}
+    \resumeItemListStart
+        \item {Built and maintained \textbf{multi-tenant frontend} (Next.js, Zustand, \href{https://react-spectrum.adobe.com/react-aria/index.html}{React Aria}) for a microservices loyalty platform serving \textbf{millions of customers} across \textbf{leading international banks}.}
+        \item {Extended \textbf{Ruby on Rails} orchestration layer — delivered new API features end-to-end (schema, CRUD, feature flags, multi-locale validation), hardened checkout paths; monitored health via \textbf{Grafana, Graylog, Sentry}.}
+        \item {Authored \textbf{k6} load-test suite in TypeScript across Partner \& Dashboard APIs; tuned stage targets from \textbf{Amplitude} production traffic data, scheduled daily via \textbf{GitHub Actions}.}
+    \resumeItemListEnd
+
+    \resumeSubheading
+      {Ahamove}{District 10 - Ho Chi Minh City}
+      {Frontend Intern}{03/2024 - 06/2024}
+      \vspace{-2.0mm}
+    \resumeItemListStart
+        \item {Maintained internal SaaS frontend (\textbf{Next.js, Zustand, Ant Design}) for Vietnam's leading on-demand logistics platform.}
+    \resumeItemListEnd
+    % \vspace{-3.0mm}
+      
+  \resumeSubHeadingListEnd
+\vspace{-8.5mm}
+
+
+
+%-----------EDUCATION-----------
+\section{\textbf{Education}}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Ho Chi Minh City University of Science, HCMUS}{GPA 3.59/4.0}
+      {Software Engineering}{2021 - 2025}
+  \resumeSubHeadingListEnd
+\vspace{-5.5mm}
+
+
+
+%-----------PROJECTS-----------------
+\section{\textbf{Projects}}
+\resumeSubHeadingListStart
+
+    \resumeProject
+      {\textbf{VOU} - Earn Vouchers through Game} %Project Name
+      {\href{https://github.com/southsea2410/vou-web}{\faGithub\ vou-web} | Role: Frontend, DevOps | Team: 6} %Project Name, Location Name
+      {08/2024 - 09/2024} %Event Dates
+      {}
+      \resumeItemListStart
+        \item {Next.js 14, shadcn/ui, TanStack Query/Table, Metabase analytics embed, AWS S3}
+        \item {Deployed on \textbf{AWS EC2} with Docker Compose; Brands manage vouchers, items, and game events}
+    \resumeItemListEnd
+    \vspace{-2mm}
+
+  \resumeSubHeadingListEnd
+\vspace{-5.5mm}
+
+
+
+
+
+
+%-------------------------------------------
+\end{document}

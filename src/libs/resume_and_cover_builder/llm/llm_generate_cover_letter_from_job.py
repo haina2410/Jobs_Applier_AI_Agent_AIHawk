@@ -10,6 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pathlib import Path
 from dotenv import load_dotenv
+import config as cfg
 from requests.exceptions import HTTPError as HTTPStatusError
 from pathlib import Path
 from loguru import logger
@@ -26,8 +27,14 @@ logger.add(log_path / "gpt_cover_letter_job_descr.log", rotation="1 day", compre
 
 class LLMCoverLetterJobDescription:
     def __init__(self, openai_api_key, strings):
-        self.llm_cheap = LoggerChatModel(ChatOpenAI(model_name="gpt-4o-mini", openai_api_key=openai_api_key, temperature=0.4))
-        self.llm_embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+        kwargs = dict(model_name=cfg.LLM_MODEL, openai_api_key=openai_api_key, temperature=0.4)
+        if cfg.LLM_API_URL:
+            kwargs["openai_api_base"] = cfg.LLM_API_URL
+        self.llm_cheap = LoggerChatModel(ChatOpenAI(**kwargs))
+        emb_kwargs = dict(openai_api_key=openai_api_key)
+        if cfg.LLM_API_URL:
+            emb_kwargs["openai_api_base"] = cfg.LLM_API_URL
+        self.llm_embeddings = OpenAIEmbeddings(**emb_kwargs)
         self.strings = strings
 
     @staticmethod
