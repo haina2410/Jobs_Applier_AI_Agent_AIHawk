@@ -11,29 +11,20 @@ from src.logging import logger
 def chrome_browser_options():
     logger.debug("Setting Chrome browser options")
     options = Options()
-    options.add_argument("--start-maximized")
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--ignore-certificate-errors")
     options.add_argument("--disable-extensions")
-    options.add_argument("--disable-gpu")  # Opzionale, utile in alcuni ambienti
+    options.add_argument("--disable-gpu")
     options.add_argument("window-size=1200x800")
-    options.add_argument("--disable-background-timer-throttling")
-    options.add_argument("--disable-backgrounding-occluded-windows")
     options.add_argument("--disable-translate")
     options.add_argument("--disable-popup-blocking")
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
     options.add_argument("--disable-logging")
-    options.add_argument("--disable-autofill")
-    options.add_argument("--disable-plugins")
-    options.add_argument("--disable-animations")
     options.add_argument("--disable-cache")
-    options.add_argument("--incognito")
-    options.add_argument("--allow-file-access-from-files")  # Consente l'accesso ai file locali
-    options.add_argument("--disable-web-security")         # Disabilita la sicurezza web
-    options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")  # Clean profile to avoid extension errors
-    logger.debug("Using Chrome in incognito mode")
+    options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")
+    logger.debug("Using Chrome in headless mode")
     
     return options
 
