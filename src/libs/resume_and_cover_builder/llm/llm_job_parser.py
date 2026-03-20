@@ -6,9 +6,8 @@ import re  # For email validation
 from src.libs.resume_and_cover_builder.utils import LoggerChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
-from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
-import config as cfg
+from src.libs.resume_and_cover_builder.llm.llm_factory import create_llm, create_embeddings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from loguru import logger
 from pathlib import Path
@@ -35,16 +34,10 @@ logger.add(log_path / "gpt_resume.log", rotation="1 day", compression="zip", ret
 
 class LLMParser:
     def __init__(self, openai_api_key):
-        kwargs = dict(model_name=cfg.LLM_MODEL, openai_api_key=openai_api_key, temperature=0.4)
-        if cfg.LLM_API_URL:
-            kwargs["openai_api_base"] = cfg.LLM_API_URL
         self.llm = LoggerChatModel(
-            ChatOpenAI(**kwargs)
+            create_llm(openai_api_key)
         )
-        emb_kwargs = dict(openai_api_key=openai_api_key)
-        if cfg.LLM_API_URL:
-            emb_kwargs["openai_api_base"] = cfg.LLM_API_URL
-        self.llm_embeddings = OpenAIEmbeddings(**emb_kwargs)
+        self.llm_embeddings = create_embeddings(openai_api_key)
         self.vectorstore = None  # Will be initialized after document loading
 
     @staticmethod

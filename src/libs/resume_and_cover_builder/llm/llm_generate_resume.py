@@ -7,9 +7,8 @@ import textwrap
 from src.libs.resume_and_cover_builder.utils import LoggerChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
-import config as cfg
+from src.libs.resume_and_cover_builder.llm.llm_factory import create_llm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from loguru import logger
 from pathlib import Path
@@ -26,11 +25,8 @@ logger.add(log_path / "gpt_resume.log", rotation="1 day", compression="zip", ret
 
 class LLMResumer:
     def __init__(self, openai_api_key, strings):
-        kwargs = dict(model_name=cfg.LLM_MODEL, openai_api_key=openai_api_key, temperature=0.4)
-        if cfg.LLM_API_URL:
-            kwargs["openai_api_base"] = cfg.LLM_API_URL
         self.llm_cheap = LoggerChatModel(
-            ChatOpenAI(**kwargs)
+            create_llm(openai_api_key)
         )
         self.strings = strings
 

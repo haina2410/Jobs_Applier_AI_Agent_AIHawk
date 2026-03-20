@@ -7,10 +7,9 @@ import textwrap
 from ..utils import LoggerChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pathlib import Path
 from dotenv import load_dotenv
-import config as cfg
+from src.libs.resume_and_cover_builder.llm.llm_factory import create_llm, create_embeddings
 from requests.exceptions import HTTPError as HTTPStatusError
 from pathlib import Path
 from loguru import logger
@@ -27,14 +26,8 @@ logger.add(log_path / "gpt_cover_letter_job_descr.log", rotation="1 day", compre
 
 class LLMCoverLetterJobDescription:
     def __init__(self, openai_api_key, strings):
-        kwargs = dict(model_name=cfg.LLM_MODEL, openai_api_key=openai_api_key, temperature=0.4)
-        if cfg.LLM_API_URL:
-            kwargs["openai_api_base"] = cfg.LLM_API_URL
-        self.llm_cheap = LoggerChatModel(ChatOpenAI(**kwargs))
-        emb_kwargs = dict(openai_api_key=openai_api_key)
-        if cfg.LLM_API_URL:
-            emb_kwargs["openai_api_base"] = cfg.LLM_API_URL
-        self.llm_embeddings = OpenAIEmbeddings(**emb_kwargs)
+        self.llm_cheap = LoggerChatModel(create_llm(openai_api_key))
+        self.llm_embeddings = create_embeddings(openai_api_key)
         self.strings = strings
 
     @staticmethod

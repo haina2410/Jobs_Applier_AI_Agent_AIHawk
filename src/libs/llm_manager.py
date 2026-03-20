@@ -42,6 +42,7 @@ from src.utils.constants import (
     LOGPROBS,
     MODEL,
     MODEL_NAME,
+    MOCK,
     OLLAMA,
     OPENAI,
     PERPLEXITY,
@@ -206,6 +207,9 @@ class AIAdapter:
             return HuggingFaceModel(api_key, llm_model)
         elif llm_model_type == PERPLEXITY:
             return PerplexityModel(api_key, llm_model)
+        elif llm_model_type == MOCK:
+            from src.libs.resume_and_cover_builder.llm.llm_factory import MockModel
+            return MockModel()
         else:
             raise ValueError(f"Unsupported model type: {llm_model_type}")
 
