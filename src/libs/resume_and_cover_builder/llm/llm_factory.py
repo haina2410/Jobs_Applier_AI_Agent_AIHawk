@@ -46,4 +46,6 @@ def create_embeddings(openai_api_key):
     kwargs = dict(openai_api_key=openai_api_key)
     if cfg.LLM_API_URL:
         kwargs["openai_api_base"] = cfg.LLM_API_URL
+    if getattr(cfg, "LLM_EMBEDDING_MODEL", None):
+        kwargs["model"] = cfg.LLM_EMBEDDING_MODEL
     return OpenAIEmbeddings(**kwargs)

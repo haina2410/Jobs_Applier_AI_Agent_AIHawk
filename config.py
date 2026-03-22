@@ -16,7 +16,10 @@ JOB_SUITABILITY_SCORE = 7
 JOB_MAX_APPLICATIONS = 5
 JOB_MIN_APPLICATIONS = 1
 
-LLM_MODEL_TYPE = 'mock'
+LLM_MODEL_TYPE = 'openai'
 LLM_MODEL = 'GLM-4.7'
+# Optional: set this only if your endpoint supports embeddings with a custom model name.
+# Example: 'text-embedding-v3' (depends on your provider support)
+LLM_EMBEDDING_MODEL = None
 # Only required for OLLAMA models
 LLM_API_URL = 'https://mkp-api.fptcloud.com'

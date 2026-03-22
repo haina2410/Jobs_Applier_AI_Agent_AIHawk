@@ -14,12 +14,10 @@ from pathlib import Path
 from langchain_core.prompt_values import StringPromptValue
 from langchain_core.runnables import RunnablePassthrough
 from langchain_text_splitters import TokenTextSplitter
-from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from lib_resume_builder_AIHawk.config import global_config
 from langchain_community.document_loaders import TextLoader
 from requests.exceptions import HTTPError as HTTPStatusError  # HTTP error handling
-import openai
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -39,6 +37,7 @@ class LLMParser:
         )
         self.llm_embeddings = create_embeddings(openai_api_key)
         self.vectorstore = None  # Will be initialized after document loading
+        self._all_splits = None  # fallback context store when embeddings are unavailable
 
     @staticmethod
     def _preprocess_template_string(template: str) -> str:
@@ -76,15 +75,20 @@ class LLMParser:
         # Split the text into chunks
         text_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
         all_splits = text_splitter.split_documents(document)
+        self._all_splits = all_splits
         logger.debug(f"Text split into {len(all_splits)} fragments.")
         
-        # Create the vectorstore using FAISS
+        # Create the vectorstore using FAISS (if embeddings are supported by provider)
         try:
+            if not self.llm_embeddings:
+                logger.warning("Embeddings not configured. Falling back to non-vector retrieval.")
+                self.vectorstore = None
+                return
             self.vectorstore = FAISS.from_documents(documents=all_splits, embedding=self.llm_embeddings)
             logger.debug("Vectorstore successfully initialized.")
         except Exception as e:
-            logger.error(f"Error during vectorstore creation: {e}")
-            raise
+            logger.warning(f"Vectorstore creation failed, falling back to non-vector retrieval: {e}")
+            self.vectorstore = None
 
     def _retrieve_context(self, query: str, top_k: int = 3) -> str:
         """
@@ -95,12 +99,19 @@ class LLMParser:
         Returns:
             str: Concatenated text fragments.
         """
-        if not self.vectorstore:
-            raise ValueError("Vectorstore not initialized. Run extract_job_description first.")
-        
-        retriever = self.vectorstore.as_retriever()
-        retrieved_docs = retriever.get_relevant_documents(query)[:top_k]
-        context = "\n\n".join(doc.page_content for doc in retrieved_docs)
+        if self.vectorstore:
+            retriever = self.vectorstore.as_retriever()
+            retrieved_docs = retriever.get_relevant_documents(query)[:top_k]
+            context = "\n\n".join(doc.page_content for doc in retrieved_docs)
+            logger.debug(f"Context retrieved by vectorstore for query '{query}': {context[:200]}...")
+            return context
+
+        if not self._all_splits:
+            raise ValueError("No parsed document context available. Run set_body_html first.")
+
+        # Fallback: use first chunks as context when embeddings endpoint/model is unavailable.
+        fallback_docs = self._all_splits[:top_k]
+        context = "\n\n".join(doc.page_content for doc in fallback_docs)
         logger.debug(f"Context retrieved for query '{query}': {context[:200]}...")  # Log the first 200 characters
         return context
     
