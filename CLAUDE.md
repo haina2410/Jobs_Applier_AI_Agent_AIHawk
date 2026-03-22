@@ -15,7 +15,7 @@ uv pip install -r requirements.txt
 # Run the application (interactive mode)
 uv run python main.py
 
-# Run the LinkedIn crawler (scheduled/automated mode)
+# Run the job crawler (LinkedIn + Facebook, scheduled/automated mode)
 uv run python -m src.crawlers.runner
 
 # Run tests
@@ -55,7 +55,7 @@ uv run pytest
 
 - `base.py` — `BaseCrawler` ABC with template `crawl()` method (search → dedup → scrape)
 - `linkedin.py` — `LinkedInCrawler` using cookie auth + undetected-chromedriver. Searches via URL params, parses job cards, scrapes full descriptions.
-- `facebook.py` — `FacebookCrawler` using mbasic.facebook.com (pure HTML, no JS). Crawls group posts, LLM classifies job listings, LLM extracts structured fields. Optional remote-only filter.
+- `facebook.py` — `FacebookCrawler` using www.facebook.com with non-headless Chrome. Scrolls group posts, LLM classifies job listings, LLM extracts structured fields (role, company, location, description). Optional remote-only filter.
 - `tracker.py` — `Tracker` class for JSON-based dedup across runs (`data_folder/crawled_jobs.json`)
 - `config.py` — `CrawlerConfig` dataclass with filter mappings (experience level, job type, work type, date posted)
 - `runner.py` — Entry point. Loads config, runs enabled crawlers, feeds jobs to `ResumeFacade` for PDF generation.
