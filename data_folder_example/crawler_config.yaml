@@ -19,4 +19,4 @@ rate_limiting:
 output:
   generate_resume: true
   generate_cover_letter: true
-  style: "Classic"
+  style: "Default"  # Available: Default, Modern Blue, Modern Grey, Cloyola Grey, Clean Blue

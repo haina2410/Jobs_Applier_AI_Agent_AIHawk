@@ -14,7 +14,7 @@ from src.crawlers.tracker import Tracker
 from src.crawlers.linkedin import LinkedInCrawler
 
 
-def init_crawler_browser() -> uc.Chrome:
+def init_crawler_browser(headless: bool = True) -> uc.Chrome:
     """Init undetected-chromedriver for crawling (avoids bot detection)."""
     options = uc.ChromeOptions()
     options.add_argument("--no-sandbox")
@@ -22,7 +22,7 @@ def init_crawler_browser() -> uc.Chrome:
     options.add_argument("window-size=1200,800")
     options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")
     try:
-        driver = uc.Chrome(options=options, headless=True)
+        driver = uc.Chrome(options=options, headless=headless)
         logger.debug("Undetected Chrome browser initialized for crawling.")
         return driver
     except Exception as e:

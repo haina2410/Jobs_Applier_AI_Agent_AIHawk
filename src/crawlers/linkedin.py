@@ -130,11 +130,18 @@ class LinkedInCrawler(BaseCrawler):
                     job_id = card.get_attribute("data-job-id")
                     if not job_id:
                         continue
-                    title_el = card.find_element(By.CSS_SELECTOR, ".job-card-list__title, .job-card-container__link")
+
+                    # Role + link from the job card title link
+                    title_el = card.find_element(By.CSS_SELECTOR, ".job-card-container__link")
                     role = title_el.text.strip()
                     link = title_el.get_attribute("href")
-                    company_el = card.find_element(By.CSS_SELECTOR, ".job-card-container__primary-description, .job-card-container__company-name")
-                    company = company_el.text.strip()
+
+                    # Company from the subtitle
+                    try:
+                        company_el = card.find_element(By.CSS_SELECTOR, ".artdeco-entity-lockup__subtitle span")
+                        company = company_el.text.strip()
+                    except Exception:
+                        company = ""
 
                     all_results.append({
                         "id": f"linkedin_{job_id}",
@@ -154,39 +161,82 @@ class LinkedInCrawler(BaseCrawler):
     def scrape_job(self, job_url: str) -> Job:
         logger.info(f"Scraping job details: {job_url}")
         self.driver.get(job_url)
+        time.sleep(3)
 
+        # Click "show more" on description if present
         try:
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".jobs-description, .jobs-unified-top-card"))
-            )
+            show_more = self.driver.find_element(By.CSS_SELECTOR, ".jobs-description__footer-button, button[aria-label*='more']")
+            show_more.click()
+            time.sleep(1)
         except Exception:
-            logger.warning("Job detail page did not load fully")
+            pass
 
         job = Job()
         job.link = job_url
 
-        try:
-            role_el = self.driver.find_element(By.CSS_SELECTOR, ".jobs-unified-top-card__job-title, .top-card-layout__title")
-            job.role = role_el.text.strip()
-        except Exception:
-            logger.debug("Could not extract role from job page")
+        # Extract from page title (reliable: "Role | Company | LinkedIn")
+        title = self.driver.title
+        if "|" in title:
+            parts = [p.strip() for p in title.split("|")]
+            if len(parts) >= 2:
+                job.role = parts[0]
+                job.company = parts[1] if parts[1].lower() != "linkedin" else ""
 
-        try:
-            company_el = self.driver.find_element(By.CSS_SELECTOR, ".jobs-unified-top-card__company-name, .topcard__org-name-link")
-            job.company = company_el.text.strip()
-        except Exception:
-            logger.debug("Could not extract company from job page")
+        # Try CSS selectors as fallback for role
+        if not job.role:
+            for sel in ["h1", ".t-24.t-bold", ".jobs-unified-top-card__job-title", ".top-card-layout__title"]:
+                try:
+                    el = self.driver.find_element(By.CSS_SELECTOR, sel)
+                    if el.text.strip():
+                        job.role = el.text.strip()
+                        break
+                except Exception:
+                    continue
 
-        try:
-            location_el = self.driver.find_element(By.CSS_SELECTOR, ".jobs-unified-top-card__bullet, .topcard__flavor--bullet")
-            job.location = location_el.text.strip()
-        except Exception:
-            logger.debug("Could not extract location from job page")
+        # Try to extract description from the "About the job" section
+        desc_selectors = [
+            ".jobs-description__content",
+            ".jobs-description-content",
+            ".jobs-box__html-content",
+            "#job-details",
+        ]
+        for sel in desc_selectors:
+            try:
+                el = self.driver.find_element(By.CSS_SELECTOR, sel)
+                if el.text.strip():
+                    job.description = el.text.strip()
+                    break
+            except Exception:
+                continue
 
-        try:
-            desc_el = self.driver.find_element(By.CSS_SELECTOR, ".jobs-description__content, .jobs-description-content")
-            job.description = desc_el.text.strip()
-        except Exception:
-            logger.warning("Could not extract job description")
+        # Fallback: extract text between "About the job" and next section
+        if not job.description:
+            try:
+                body_text = self.driver.find_element(By.TAG_NAME, "body").text
+                marker = "About the job"
+                if marker in body_text:
+                    after = body_text.split(marker, 1)[1]
+                    # Cut at known section boundaries
+                    for boundary in ["Set alert for similar jobs", "About the company", "People also viewed"]:
+                        if boundary in after:
+                            after = after.split(boundary, 1)[0]
+                    job.description = after.strip()
+            except Exception:
+                logger.warning("Could not extract job description")
 
+        # Extract location from page text
+        if not job.location:
+            try:
+                body_text = self.driver.find_element(By.TAG_NAME, "body").text
+                # Location usually appears right after company name in the top card
+                for line in body_text.split("\n"):
+                    line = line.strip()
+                    if "·" in line and ("ago" in line.lower() or "people" in line.lower()):
+                        # Pattern: "Location · Posted X days ago · N applicants"
+                        job.location = line.split("·")[0].strip()
+                        break
+            except Exception:
+                logger.debug("Could not extract location from job page")
+
+        logger.info(f"Scraped: {job.role} at {job.company} ({job.location})")
         return job
