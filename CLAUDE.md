@@ -12,11 +12,14 @@ AIHawk is an AI-powered job application tool that uses LLMs (OpenAI, Claude, Oll
 # Install dependencies
 uv pip install -r requirements.txt
 
-# Run the application
-python main.py
+# Run the application (interactive mode)
+uv run python main.py
+
+# Run the LinkedIn crawler (scheduled/automated mode)
+uv run python -m src.crawlers.runner
 
 # Run tests
-pytest
+uv run pytest
 ```
 
 ## Architecture
@@ -46,6 +49,18 @@ pytest
 
 **`src/libs/resume_and_cover_builder/config.py`** — `GlobalConfig` singleton managing paths, HTML templates, and settings
 
+### Crawlers
+
+**`src/crawlers/`** — Plugin-based job crawling system. Runs on a schedule (cron) to search job boards, scrape listings, and auto-generate tailored resumes/cover letters.
+
+- `base.py` — `BaseCrawler` ABC with template `crawl()` method (search → dedup → scrape)
+- `linkedin.py` — `LinkedInCrawler` using cookie auth + undetected-chromedriver. Searches via URL params, parses job cards, scrapes full descriptions.
+- `tracker.py` — `Tracker` class for JSON-based dedup across runs (`data_folder/crawled_jobs.json`)
+- `config.py` — `CrawlerConfig` dataclass with filter mappings (experience level, job type, work type, date posted)
+- `runner.py` — Entry point. Loads config, runs enabled crawlers, feeds jobs to `ResumeFacade` for PDF generation.
+
+**Config:** `data_folder/crawler_config.yaml` (see `data_folder_example/` for template). LinkedIn cookies (`li_at`, `li_rm`) go in `secrets.yaml`.
+
 ### Data Models
 
 - `src/resume_schemas/resume.py` — `Resume` Pydantic model that parses YAML directly via `Resume(yaml_str)`
@@ -64,9 +79,11 @@ LLM prompts live in `src/libs/resume_and_cover_builder/` subdirectories:
 **`config.py`** (top-level) — App settings: `LLM_MODEL_TYPE`, `LLM_MODEL`, `JOB_SUITABILITY_SCORE`, `JOB_MAX_APPLICATIONS`, logging config
 
 **User data** lives in `data_folder/` (gitignored):
-- `secrets.yaml` — LLM API key
+- `secrets.yaml` — LLM API key + LinkedIn cookies (`li_at`, `li_rm`)
 - `work_preferences.yaml` — Job preferences (experience levels, job types, blacklists)
 - `plain_text_resume.yaml` — Resume content
+- `crawler_config.yaml` — Crawler settings (filters, rate limiting, output options)
+- `crawled_jobs.json` — Tracker for dedup across crawler runs
 - `output/` — Generated PDFs
 
 Example configs are in `data_folder_example/`.
