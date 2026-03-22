@@ -28,7 +28,11 @@ from src.job import Job
 from src.logging import logger
 
 DEFAULT_FACEBOOK_COOKIE_FILE = "facebook.com.cookies.json"
-DEFAULT_FACEBOOK_GROUP_URL = "https://www.facebook.com/groups/ithotjobs.tuyendungit.vieclamcntt.susudev/?sorting_setting=CHRONOLOGICAL"
+DEFAULT_FACEBOOK_GROUP_URLS = [
+    "https://www.facebook.com/groups/ithotjobs.tuyendungit.vieclamcntt.susudev/?sorting_setting=CHRONOLOGICAL",
+    "https://www.facebook.com/groups/Freelance.Remote.IT.Jobs.VN/?sorting_setting=CHRONOLOGICAL",
+    "https://www.facebook.com/groups/5097678227028214/?sorting_setting=CHRONOLOGICAL"
+]
 DEBUG_STEPS_DIR = project_root / "debug_steps"
 REMOTE_POSTS_OUTPUT_JSON = project_root / "facebook_remote_posts.json"
 JOB_POSTS_OUTPUT_JSON = project_root / "facebook_job_posts.json"
@@ -143,18 +147,28 @@ def reset_debug_steps_dir():
     DEBUG_STEPS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def write_debug_json(filename: str, payload):
-    target = DEBUG_STEPS_DIR / filename
+def _debug_target_path(filename: str, debug_prefix: str = "") -> Path:
+    final_name = f"{debug_prefix}__{filename}" if debug_prefix else filename
+    return DEBUG_STEPS_DIR / final_name
+
+
+def write_debug_json(filename: str, payload, debug_prefix: str = ""):
+    target = _debug_target_path(filename, debug_prefix)
     with open(target, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     logger.info(f"[DBG] Wrote JSON debug file: {target}")
 
 
-def write_debug_html(filename: str, html: str):
-    target = DEBUG_STEPS_DIR / filename
+def write_debug_html(filename: str, html: str, debug_prefix: str = ""):
+    target = _debug_target_path(filename, debug_prefix)
     with open(target, "w", encoding="utf-8") as f:
         f.write(html or "")
     logger.info(f"[DBG] Wrote HTML debug file: {target}")
+
+
+def make_debug_prefix(group_url: str, idx: int) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", group_url).strip("_").lower()
+    return f"url{idx:02d}_{slug[:50]}"
 
 
 def _safe_text(element, xpath: str) -> str:
@@ -250,7 +264,7 @@ def _is_noise_post(post: Dict[str, str]) -> bool:
     return False
 
 
-def apply_facebook_cookies(driver, cookie_file_path: str):
+def apply_facebook_cookies(driver, cookie_file_path: str, debug_prefix: str = ""):
     logger.info(f"[FB-01] Loading cookies from: {cookie_file_path}")
     with open(cookie_file_path, "r", encoding="utf-8") as f:
         raw = json.load(f)
@@ -302,11 +316,18 @@ def apply_facebook_cookies(driver, cookie_file_path: str):
             "cookies_added": added_count,
             "cookies_skipped": skipped_count,
         },
+        debug_prefix=debug_prefix,
     )
-    write_debug_html("step_01_after_cookie_login.html", driver.page_source)
+    write_debug_html("step_01_after_cookie_login.html", driver.page_source, debug_prefix=debug_prefix)
 
 
-def crawl_latest_facebook_posts(driver, group_url: str, target_posts: int = TARGET_POSTS_COUNT, max_scrolls: int = 25) -> List[Dict[str, str]]:
+def crawl_latest_facebook_posts(
+    driver,
+    group_url: str,
+    target_posts: int = TARGET_POSTS_COUNT,
+    max_scrolls: int = 25,
+    debug_prefix: str = "",
+) -> List[Dict[str, str]]:
     logger.info(f"[FB-07] Navigating to group URL: {group_url}")
     driver.get(group_url)
     logger.info("[FB-08] Waiting for feed container...")
@@ -320,7 +341,7 @@ def crawl_latest_facebook_posts(driver, group_url: str, target_posts: int = TARG
     )
     time.sleep(2)
     logger.info("[FB-09] Feed detected. Starting crawl loop...")
-    write_debug_html("step_02_group_loaded.html", driver.page_source)
+    write_debug_html("step_02_group_loaded.html", driver.page_source, debug_prefix=debug_prefix)
 
     posts: List[Dict[str, str]] = []
     seen_content = set()
@@ -398,6 +419,7 @@ def crawl_latest_facebook_posts(driver, group_url: str, target_posts: int = TARG
         write_debug_html(
             f"step_03_scroll_{scroll_idx + 1}_containers.html",
             "<html><body>\n" + "\n<hr/>\n".join(container_blocks) + "\n</body></html>",
+            debug_prefix=debug_prefix,
         )
 
         before_count = len(posts)
@@ -468,6 +490,7 @@ def crawl_latest_facebook_posts(driver, group_url: str, target_posts: int = TARG
             write_debug_html(
                 f"step_03_selected_post_{accepted_no:02d}.html",
                 accepted_html,
+                debug_prefix=debug_prefix,
             )
             accepted_meta.append(
                 {
@@ -523,6 +546,7 @@ def crawl_latest_facebook_posts(driver, group_url: str, target_posts: int = TARG
                 "stagnant_rounds": stagnant_rounds,
                 "sample_preview": [p["content"][:150] for p in posts[: min(3, len(posts))]],
             },
+            debug_prefix=debug_prefix,
         )
         if len(posts) >= target_posts:
             break
@@ -531,8 +555,16 @@ def crawl_latest_facebook_posts(driver, group_url: str, target_posts: int = TARG
             break
 
     final_posts = posts[:target_posts]
-    write_debug_json(f"step_04_collected_latest_{target_posts}_posts.json", final_posts)
-    write_debug_json("step_04_selected_posts_meta.json", accepted_meta[:target_posts])
+    write_debug_json(
+        f"step_04_collected_latest_{target_posts}_posts.json",
+        final_posts,
+        debug_prefix=debug_prefix,
+    )
+    write_debug_json(
+        "step_04_selected_posts_meta.json",
+        accepted_meta[:target_posts],
+        debug_prefix=debug_prefix,
+    )
     logger.info(f"[FB-15] Crawl completed. Total latest posts collected: {len(final_posts)}")
     return final_posts
 
@@ -552,7 +584,12 @@ def _extract_json_array_from_text(text: str) -> List[int]:
     return []
 
 
-def classify_job_posts_with_llm(posts: List[Dict[str, str]], api_key: str) -> List[Dict[str, str]]:
+def classify_job_posts_with_llm(
+    posts: List[Dict[str, str]],
+    api_key: str,
+    debug_prefix: str = "",
+    source_url: str = "",
+) -> List[Dict[str, str]]:
     if not posts:
         logger.info("[FB-JOB] No posts to classify.")
         return []
@@ -573,6 +610,7 @@ def classify_job_posts_with_llm(posts: List[Dict[str, str]], api_key: str) -> Li
             "posts": posts,
             "payload_preview": payload[:12000],
         },
+        debug_prefix=debug_prefix,
     )
 
     prompt = (
@@ -587,13 +625,14 @@ def classify_job_posts_with_llm(posts: List[Dict[str, str]], api_key: str) -> Li
             "prompt_length": len(prompt),
             "prompt": prompt,
         },
+        debug_prefix=debug_prefix,
     )
     logger.info("[FB-JOB-01] Invoking LLM to classify job-related posts...")
     logger.info(f"[FB-JOB-01] Input posts count: {len(posts)}")
     logger.info(f"[FB-JOB-01] Prompt length: {len(prompt)} chars")
     result = llm.invoke(prompt)
     raw = (result.content if hasattr(result, "content") else str(result)).strip()
-    write_debug_json("step_05_job_filter_raw_response.json", {"raw_response": raw})
+    write_debug_json("step_05_job_filter_raw_response.json", {"raw_response": raw}, debug_prefix=debug_prefix)
     logger.info(f"[FB-JOB-02] Raw LLM output: {raw}")
     indexes = _extract_json_array_from_text(raw)
     logger.info(f"[FB-JOB-02] LLM returned job indexes: {indexes}")
@@ -607,13 +646,18 @@ def classify_job_posts_with_llm(posts: List[Dict[str, str]], api_key: str) -> Li
                     "author": src.get("author", "Unknown"),
                     "time_label": src.get("time_label", "Unknown"),
                     "JD": src.get("content", ""),
+                    "source_url": source_url,
                 }
             )
     logger.info(f"[FB-JOB-03] Job posts selected: {len(job_posts)}")
     return job_posts
 
 
-def filter_remote_jobs_with_llm(job_posts: List[Dict[str, str]], api_key: str) -> List[Dict[str, str]]:
+def filter_remote_jobs_with_llm(
+    job_posts: List[Dict[str, str]],
+    api_key: str,
+    debug_prefix: str = "",
+) -> List[Dict[str, str]]:
     if not job_posts:
         logger.info("[FB-REMOTE] No job posts to filter.")
         return []
@@ -636,7 +680,11 @@ def filter_remote_jobs_with_llm(job_posts: List[Dict[str, str]], api_key: str) -
     logger.info("[FB-REMOTE-01] Invoking LLM to filter remote jobs...")
     result = llm.invoke(prompt)
     raw = (result.content if hasattr(result, "content") else str(result)).strip()
-    write_debug_json("step_06_remote_filter_raw_response.json", {"raw_response": raw})
+    write_debug_json(
+        "step_06_remote_filter_raw_response.json",
+        {"raw_response": raw},
+        debug_prefix=debug_prefix,
+    )
     indexes = _extract_json_array_from_text(raw)
     logger.info(f"[FB-REMOTE-02] LLM returned remote indexes: {indexes}")
 
@@ -730,13 +778,17 @@ def main():
     
     reset_debug_steps_dir()
 
-    # Facebook extraction runs with fixed defaults.
-    logger.info("[MAIN-02] Using default Facebook group and cookie file.")
-    job_url = DEFAULT_FACEBOOK_GROUP_URL
+    # Facebook extraction runs with configurable URL list.
+    logger.info("[MAIN-02] Using configured Facebook group URL list and cookie file.")
+    group_urls = [u.strip() for u in DEFAULT_FACEBOOK_GROUP_URLS if u.strip()]
+    if not group_urls:
+        print("❌ No Facebook URLs configured.")
+        logger.warning("[MAIN-ERR] DEFAULT_FACEBOOK_GROUP_URLS is empty.")
+        return
     cookie_file = str((project_root / DEFAULT_FACEBOOK_COOKIE_FILE).resolve())
-    logger.info(f"[MAIN-03] Facebook group URL: {job_url}")
+    logger.info(f"[MAIN-03] Facebook group URL count: {len(group_urls)}")
     logger.info(f"[MAIN-04] Cookie file path: {cookie_file}")
-    print(f"\n🔍 Starting extraction for: {job_url}\n")
+    print(f"\n🔍 Starting extraction for {len(group_urls)} facebook URLs\n")
     
     try:
         if not Path(cookie_file).exists():
@@ -744,43 +796,94 @@ def main():
             logger.warning(f"[MAIN-ERR] Cookie file path not found: {cookie_file}")
             return
 
-        logger.info("[MAIN-05] Initializing browser for Facebook mode...")
-        driver = init_browser()
-        try:
-            logger.info("[MAIN-06] Applying Facebook cookies...")
-            apply_facebook_cookies(driver, cookie_file)
-            logger.info(f"[MAIN-07] Crawling latest {TARGET_POSTS_COUNT} Facebook posts while scrolling...")
-            posts = crawl_latest_facebook_posts(driver, job_url, target_posts=TARGET_POSTS_COUNT, max_scrolls=40)
-        finally:
-            logger.info("[MAIN-08] Closing Facebook crawler browser...")
-            driver.quit()
+        all_crawled_posts: List[Dict[str, str]] = []
+        all_job_posts: List[Dict[str, str]] = []
+        all_remote_posts: List[Dict[str, str]] = []
 
-        print("\n" + "=" * 70)
-        print(f"Collected latest {len(posts)} posts")
-        print("=" * 70)
-        logger.info(f"[MAIN-09] Printing {len(posts)} collected posts to terminal.")
-        for i, p in enumerate(posts, 1):
-            print(f"\n[{i}] {p['author']} | {p['time_label']}")
-            print(p["content"][:400] + ("..." if len(p["content"]) > 400 else ""))
+        for idx, job_url in enumerate(group_urls, 1):
+            debug_prefix = make_debug_prefix(job_url, idx)
+            logger.info(f"[MAIN-05] Processing URL {idx}/{len(group_urls)}: {job_url}")
 
-        logger.info("[MAIN-10] Classifying job-related posts using AI...")
-        job_posts = classify_job_posts_with_llm(posts, api_key)
-        write_debug_json("step_05_job_posts.json", job_posts)
+            driver = init_browser()
+            try:
+                logger.info("[MAIN-06] Applying Facebook cookies...")
+                apply_facebook_cookies(driver, cookie_file, debug_prefix=debug_prefix)
+                logger.info(f"[MAIN-07] Crawling latest {TARGET_POSTS_COUNT} Facebook posts while scrolling...")
+                posts = crawl_latest_facebook_posts(
+                    driver,
+                    job_url,
+                    target_posts=TARGET_POSTS_COUNT,
+                    max_scrolls=40,
+                    debug_prefix=debug_prefix,
+                )
+            finally:
+                logger.info("[MAIN-08] Closing Facebook crawler browser...")
+                driver.quit()
+
+            for p in posts:
+                p["source_url"] = job_url
+            all_crawled_posts.extend(posts)
+
+            logger.info("[MAIN-10] Classifying job-related posts using AI...")
+            job_posts = classify_job_posts_with_llm(
+                posts,
+                api_key,
+                debug_prefix=debug_prefix,
+                source_url=job_url,
+            )
+            write_debug_json("step_05_job_posts.json", job_posts, debug_prefix=debug_prefix)
+            all_job_posts.extend(job_posts)
+
+            logger.info("[MAIN-12] Filtering remote jobs using AI...")
+            remote_posts = filter_remote_jobs_with_llm(
+                job_posts,
+                api_key,
+                debug_prefix=debug_prefix,
+            )
+            write_debug_json("step_06_remote_posts.json", remote_posts, debug_prefix=debug_prefix)
+            all_remote_posts.extend(remote_posts)
+
+        def _dedupe_by_jd(items: List[Dict[str, str]]) -> List[Dict[str, str]]:
+            seen = set()
+            out = []
+            for item in items:
+                jd = re.sub(r"\s+", " ", (item.get("JD") or item.get("content") or "")).strip().lower()
+                key = jd[:800]
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                out.append(item)
+            return out
+
+        merged_job_posts = _dedupe_by_jd(all_job_posts)
+        merged_remote_posts = _dedupe_by_jd(all_remote_posts)
+
+        write_debug_json(
+            "step_07_merged_summary.json",
+            {
+                "url_count": len(group_urls),
+                "crawled_posts_total": len(all_crawled_posts),
+                "job_posts_total_before_dedupe": len(all_job_posts),
+                "remote_posts_total_before_dedupe": len(all_remote_posts),
+                "job_posts_total_after_dedupe": len(merged_job_posts),
+                "remote_posts_total_after_dedupe": len(merged_remote_posts),
+            },
+        )
+        write_debug_json("step_07_merged_job_posts.json", merged_job_posts)
+        write_debug_json("step_07_merged_remote_posts.json", merged_remote_posts)
+
         with open(JOB_POSTS_OUTPUT_JSON, "w", encoding="utf-8") as f:
-            json.dump(job_posts, f, ensure_ascii=False, indent=2)
+            json.dump(merged_job_posts, f, ensure_ascii=False, indent=2)
         logger.info(f"[MAIN-11] Job posts JSON output: {JOB_POSTS_OUTPUT_JSON}")
 
-        logger.info("[MAIN-12] Filtering remote jobs using AI...")
-        remote_posts = filter_remote_jobs_with_llm(job_posts, api_key)
-        write_debug_json("step_06_remote_posts.json", remote_posts)
         with open(REMOTE_POSTS_OUTPUT_JSON, "w", encoding="utf-8") as f:
-            json.dump(remote_posts, f, ensure_ascii=False, indent=2)
+            json.dump(merged_remote_posts, f, ensure_ascii=False, indent=2)
         logger.info(f"[MAIN-13] Remote posts JSON output: {REMOTE_POSTS_OUTPUT_JSON}")
 
         print("\n" + "=" * 70)
-        print(f"Job posts saved: {len(job_posts)}")
+        print(f"Job posts saved: {len(merged_job_posts)}")
         print(f"Job posts JSON: {JOB_POSTS_OUTPUT_JSON}")
-        print(f"Remote job posts saved: {len(remote_posts)}")
+        print(f"Remote job posts saved: {len(merged_remote_posts)}")
         print(f"Output JSON: {REMOTE_POSTS_OUTPUT_JSON}")
         print("=" * 70 + "\n")
         logger.info(f"[MAIN-14] Facebook mode completed in {time.time() - run_started_at:.2f}s")
