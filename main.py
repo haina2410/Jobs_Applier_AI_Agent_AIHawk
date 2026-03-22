@@ -261,17 +261,20 @@ def create_cover_letter(parameters: dict, llm_api_key: str):
         resume_generator = ResumeGenerator()
         resume_object = Resume(plain_text_resume)
         driver = init_browser()
-        resume_generator.set_resume_object(resume_object)
-        resume_facade = ResumeFacade(            
-            api_key=llm_api_key,
-            style_manager=style_manager,
-            resume_generator=resume_generator,
-            resume_object=resume_object,
-            output_path=Path("data_folder/output"),
-        )
-        resume_facade.set_driver(driver)
-        resume_facade.link_to_job(job_url)
-        result_base64, suggested_name = resume_facade.create_cover_letter()         
+        try:
+            resume_generator.set_resume_object(resume_object)
+            resume_facade = ResumeFacade(
+                api_key=llm_api_key,
+                style_manager=style_manager,
+                resume_generator=resume_generator,
+                resume_object=resume_object,
+                output_path=Path("data_folder/output"),
+            )
+            resume_facade.set_driver(driver)
+            resume_facade.link_to_job(job_url)
+            result_base64, suggested_name = resume_facade.create_cover_letter()
+        finally:
+            driver.quit()         
 
         # Decodifica Base64 in dati binari
         try:
@@ -346,17 +349,20 @@ def create_resume_pdf_job_tailored(parameters: dict, llm_api_key: str):
         resume_generator = ResumeGenerator()
         resume_object = Resume(plain_text_resume)
         driver = init_browser()
-        resume_generator.set_resume_object(resume_object)
-        resume_facade = ResumeFacade(            
-            api_key=llm_api_key,
-            style_manager=style_manager,
-            resume_generator=resume_generator,
-            resume_object=resume_object,
-            output_path=Path("data_folder/output"),
-        )
-        resume_facade.set_driver(driver)
-        resume_facade.link_to_job(job_url)
-        result_base64, suggested_name = resume_facade.create_resume_pdf_job_tailored()         
+        try:
+            resume_generator.set_resume_object(resume_object)
+            resume_facade = ResumeFacade(
+                api_key=llm_api_key,
+                style_manager=style_manager,
+                resume_generator=resume_generator,
+                resume_object=resume_object,
+                output_path=Path("data_folder/output"),
+            )
+            resume_facade.set_driver(driver)
+            resume_facade.link_to_job(job_url)
+            result_base64, suggested_name = resume_facade.create_resume_pdf_job_tailored()
+        finally:
+            driver.quit()         
 
         # Decodifica Base64 in dati binari
         try:
@@ -431,18 +437,21 @@ def create_resume_pdf(parameters: dict, llm_api_key: str):
         resume_generator = ResumeGenerator()
         resume_object = Resume(plain_text_resume)
         driver = init_browser()
-        resume_generator.set_resume_object(resume_object)
+        try:
+            resume_generator.set_resume_object(resume_object)
 
-        # Create the ResumeFacade
-        resume_facade = ResumeFacade(
-            api_key=llm_api_key,
-            style_manager=style_manager,
-            resume_generator=resume_generator,
-            resume_object=resume_object,
-            output_path=Path("data_folder/output"),
-        )
-        resume_facade.set_driver(driver)
-        result_base64 = resume_facade.create_resume_pdf()
+            # Create the ResumeFacade
+            resume_facade = ResumeFacade(
+                api_key=llm_api_key,
+                style_manager=style_manager,
+                resume_generator=resume_generator,
+                resume_object=resume_object,
+                output_path=Path("data_folder/output"),
+            )
+            resume_facade.set_driver(driver)
+            result_base64 = resume_facade.create_resume_pdf()
+        finally:
+            driver.quit()
 
         # Decode Base64 to binary data
         try:

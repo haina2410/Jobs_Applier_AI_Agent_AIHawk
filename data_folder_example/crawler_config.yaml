@@ -1,0 +1,30 @@
+enabled_crawlers:
+  - linkedin
+
+linkedin:
+  filters:
+    keywords: "Software Engineer"
+    location: "San Francisco, CA"
+    experience_level: ["mid-senior", "director"]
+    job_type: ["full-time"]
+    work_type: ["remote", "hybrid"]
+    date_posted: "past_week"
+  max_jobs_per_run: 20
+  max_pages: 3
+
+rate_limiting:
+  min_delay: 2
+  max_delay: 5
+
+output:
+  generate_resume: true
+  generate_cover_letter: true
+  style: "Default"  # Available: Default, Modern Blue, Modern Grey, Cloyola Grey, Clean Blue
+
+facebook:
+  group_urls:
+    - "https://www.facebook.com/groups/your-group-id"
+  cookies_file: "facebook.com.cookies.json"
+  target_posts: 25
+  max_pages: 10
+  filter_remote_only: false

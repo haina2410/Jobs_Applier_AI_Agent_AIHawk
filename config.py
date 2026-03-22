@@ -16,7 +16,7 @@ JOB_SUITABILITY_SCORE = 7
 JOB_MAX_APPLICATIONS = 5
 JOB_MIN_APPLICATIONS = 1
 
-LLM_MODEL_TYPE = 'openai'
+LLM_MODEL_TYPE = 'ollama'
 LLM_MODEL = 'GLM-4.7'
 # Optional: set this only if your endpoint supports embeddings with a custom model name.
 # Example: 'text-embedding-v3' (depends on your provider support)
