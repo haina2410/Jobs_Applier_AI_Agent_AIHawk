@@ -14,9 +14,9 @@ from langchain_core.messages import HumanMessage
 
 
 class FacebookCrawler(BaseCrawler):
-    """Crawls Facebook group posts via mbasic.facebook.com."""
+    """Crawls Facebook group posts via m.facebook.com (mobile site)."""
 
-    MBASIC_URL = "https://mbasic.facebook.com"
+    MOBILE_URL = "https://m.facebook.com"
 
     def __init__(self, driver, tracker: Tracker, config: dict, cookies: list, llm_api_key: str):
         super().__init__(driver, tracker, config)
@@ -25,8 +25,9 @@ class FacebookCrawler(BaseCrawler):
         self._post_cache: dict[str, str] = {}
 
     @staticmethod
-    def _to_mbasic_url(url: str) -> str:
-        return re.sub(r"https://(www\.|m\.)?facebook\.com", "https://mbasic.facebook.com", url)
+    def _to_mobile_url(url: str) -> str:
+        """Convert www/mbasic facebook URL to m.facebook.com."""
+        return re.sub(r"https://(www\.|mbasic\.)?facebook\.com", "https://m.facebook.com", url)
 
     @staticmethod
     def _generate_post_id(text: str) -> str:
@@ -34,7 +35,7 @@ class FacebookCrawler(BaseCrawler):
 
     def login(self) -> None:
         logger.info("Logging into Facebook via cookies...")
-        self.driver.get(self.MBASIC_URL)
+        self.driver.get(self.MOBILE_URL)
         time.sleep(2)
 
         for cookie in self.cookies:
@@ -46,15 +47,18 @@ class FacebookCrawler(BaseCrawler):
             except Exception as e:
                 logger.debug(f"Failed to add cookie {clean.get('name')}: {e}")
 
-        self.driver.get(f"{self.MBASIC_URL}/me")
-        time.sleep(2)
+        self.driver.get(f"{self.MOBILE_URL}/me")
+        time.sleep(3)
 
-        if "/login" in self.driver.current_url or "login_form" in self.driver.page_source:
+        # Check for login redirect or login form
+        current_url = self.driver.current_url
+        page_source = self.driver.page_source
+        if "/login" in current_url or "login_form" in page_source:
             raise RuntimeError(
                 "Facebook login failed — cookies may be expired. "
                 "Please re-export your Facebook cookies."
             )
-        logger.info("Facebook login successful")
+        logger.info(f"Facebook login successful (URL: {current_url})")
 
     def search_jobs(self, filters: dict) -> list[dict]:
         group_urls = self.config.get("group_urls", [])
@@ -64,8 +68,8 @@ class FacebookCrawler(BaseCrawler):
 
         all_posts = []
         for group_url in group_urls:
-            mbasic_url = self._to_mbasic_url(group_url)
-            posts = self._crawl_group_posts(mbasic_url, target_posts, max_pages)
+            mobile_url = self._to_mobile_url(group_url)
+            posts = self._crawl_group_posts(mobile_url, target_posts, max_pages)
             all_posts.extend(posts)
             logger.info(f"Crawled {len(posts)} posts from {group_url}")
 
@@ -127,20 +131,32 @@ class FacebookCrawler(BaseCrawler):
             self.tracker.mark_seen(result["id"], result["url"], result.get("role", ""))
         return jobs
 
-    def _crawl_group_posts(self, mbasic_url: str, target_posts: int, max_pages: int) -> list[dict]:
+    def _crawl_group_posts(self, mobile_url: str, target_posts: int, max_pages: int) -> list[dict]:
+        """Crawl posts from m.facebook.com group page via scrolling."""
         posts = []
         seen_texts = set()
-        current_url = mbasic_url
+
+        logger.info(f"Crawling group: {mobile_url}")
+        self.driver.get(mobile_url)
+        time.sleep(3)
 
         for page in range(max_pages):
-            logger.info(f"Crawling page {page + 1}/{max_pages}: {current_url}")
-            self.driver.get(current_url)
-            time.sleep(2)
+            # m.facebook.com uses article or div[data-ft] for posts
+            # Also try story containers and generic post divs
+            post_selectors = [
+                "article",
+                "div[data-ft]",
+                "div[role='article']",
+                "#m_group_stories_container > div > div",
+            ]
 
-            post_elements = self.driver.find_elements(By.CSS_SELECTOR, "div[data-ft], div.bx, article")
-            if not post_elements:
-                post_elements = self.driver.find_elements(By.CSS_SELECTOR, "#m_group_stories_container div > div")
+            post_elements = []
+            for sel in post_selectors:
+                post_elements = self.driver.find_elements(By.CSS_SELECTOR, sel)
+                if post_elements:
+                    break
 
+            new_on_page = 0
             for el in post_elements:
                 try:
                     text = el.text.strip()
@@ -150,34 +166,50 @@ class FacebookCrawler(BaseCrawler):
                     if text_key in seen_texts:
                         continue
                     seen_texts.add(text_key)
-                    posts.append({"text": text, "group_url": mbasic_url})
+                    posts.append({"text": text, "group_url": mobile_url})
+                    new_on_page += 1
                 except Exception:
                     continue
 
-            logger.info(f"Page {page + 1}: collected {len(posts)} total posts")
+            logger.info(f"Page {page + 1}/{max_pages}: {new_on_page} new posts, {len(posts)} total")
 
             if len(posts) >= target_posts:
                 break
 
+            # Try pagination: look for "See more posts" link or scroll
             next_link = self._find_pagination_link()
-            if not next_link:
-                logger.info("No more pages to crawl")
-                break
-            current_url = next_link
+            if next_link:
+                self.driver.get(next_link)
+                time.sleep(2)
+            else:
+                # Scroll down to trigger lazy loading on m.facebook.com
+                last_height = self.driver.execute_script("return document.body.scrollHeight")
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(3)
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    logger.info("No more content to load")
+                    break
 
         return posts[:target_posts]
 
     def _find_pagination_link(self) -> str | None:
+        """Find 'See more posts' or equivalent pagination link."""
         try:
             links = self.driver.find_elements(By.TAG_NAME, "a")
             for link in links:
                 text = link.text.strip().lower()
                 href = link.get_attribute("href") or ""
-                if any(kw in text for kw in ["see more posts", "xem thêm bài viết", "more posts", "xem thêm"]):
+                keywords = [
+                    "see more posts", "xem thêm bài viết",
+                    "more posts", "xem thêm",
+                    "see more", "older posts",
+                ]
+                if any(kw in text for kw in keywords):
                     if href.startswith("http"):
                         return href
                     elif href.startswith("/"):
-                        return f"{self.MBASIC_URL}{href}"
+                        return f"{self.MOBILE_URL}{href}"
         except Exception as e:
             logger.debug(f"Error finding pagination link: {e}")
         return None

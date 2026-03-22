@@ -38,12 +38,12 @@ def cookies():
     return [{"name": "c_user", "value": "123", "domain": ".facebook.com"}]
 
 
-def test_mbasic_url_conversion():
-    assert FacebookCrawler._to_mbasic_url("https://www.facebook.com/groups/test123") == "https://mbasic.facebook.com/groups/test123"
+def test_mobile_url_conversion():
+    assert FacebookCrawler._to_mobile_url("https://www.facebook.com/groups/test123") == "https://m.facebook.com/groups/test123"
 
 
-def test_mbasic_url_already_mbasic():
-    assert FacebookCrawler._to_mbasic_url("https://mbasic.facebook.com/groups/test123") == "https://mbasic.facebook.com/groups/test123"
+def test_mobile_url_already_mobile():
+    assert FacebookCrawler._to_mobile_url("https://m.facebook.com/groups/test123") == "https://m.facebook.com/groups/test123"
 
 
 def test_generate_post_id():
@@ -56,7 +56,7 @@ def test_generate_post_id():
 def test_login_injects_cookies(mock_driver, tracker, config, cookies):
     crawler = FacebookCrawler(mock_driver, tracker, config, cookies=cookies, llm_api_key="test")
     mock_driver.find_elements.return_value = [MagicMock()]
-    mock_driver.current_url = "https://mbasic.facebook.com/me"
+    mock_driver.current_url = "https://m.facebook.com/me"
     mock_driver.page_source = "<div>Profile content</div>"
     crawler.login()
     assert mock_driver.add_cookie.call_count == 1
@@ -65,7 +65,7 @@ def test_login_injects_cookies(mock_driver, tracker, config, cookies):
 def test_login_raises_on_failure(mock_driver, tracker, config, cookies):
     crawler = FacebookCrawler(mock_driver, tracker, config, cookies=cookies, llm_api_key="test")
     mock_driver.find_elements.return_value = []
-    mock_driver.current_url = "https://mbasic.facebook.com/login"
+    mock_driver.current_url = "https://m.facebook.com/login"
     mock_driver.page_source = "<form id='login_form'>"
     with pytest.raises(RuntimeError, match="Facebook login failed"):
         crawler.login()
