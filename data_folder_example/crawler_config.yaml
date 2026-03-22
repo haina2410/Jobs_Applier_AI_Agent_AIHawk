@@ -20,3 +20,11 @@ output:
   generate_resume: true
   generate_cover_letter: true
   style: "Default"  # Available: Default, Modern Blue, Modern Grey, Cloyola Grey, Clean Blue
+
+facebook:
+  group_urls:
+    - "https://www.facebook.com/groups/your-group-id"
+  cookies_file: "facebook.com.cookies.json"
+  target_posts: 25
+  max_pages: 10
+  filter_remote_only: false

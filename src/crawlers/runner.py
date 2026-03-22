@@ -1,4 +1,5 @@
 import base64
+import json
 import tempfile
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from src.utils.chrome_utils import init_browser
 from src.crawlers.config import CrawlerConfig
 from src.crawlers.tracker import Tracker
 from src.crawlers.linkedin import LinkedInCrawler
+from src.crawlers.facebook import FacebookCrawler
 
 
 def init_crawler_browser(headless: bool = True) -> uc.Chrome:
@@ -88,6 +90,41 @@ def run(data_folder: str = "data_folder"):
                     logger.info(f"LinkedIn: found {len(jobs)} new jobs")
                 except Exception as e:
                     logger.error(f"LinkedIn crawler failed: {e}")
+            elif crawler_name == "facebook":
+                fb_config = config.facebook
+                cookies_file = fb_config.get("cookies_file", "facebook.com.cookies.json")
+                cookies_path = data_path / cookies_file
+                if not cookies_path.exists():
+                    logger.error(f"Facebook cookies file not found: {cookies_path}, skipping")
+                    continue
+                try:
+                    fb_cookies = json.loads(cookies_path.read_text())
+                    if isinstance(fb_cookies, dict) and "cookies" in fb_cookies:
+                        fb_cookies = fb_cookies["cookies"]
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.error(f"Failed to load Facebook cookies: {e}, skipping")
+                    continue
+
+                crawler_config = {
+                    **fb_config,
+                    "min_delay": config.rate_limiting.get("min_delay", 2),
+                    "max_delay": config.rate_limiting.get("max_delay", 5),
+                }
+                # Facebook requires non-headless Chrome to fully render post content
+                fb_driver = init_crawler_browser(headless=False)
+                try:
+                    crawler = FacebookCrawler(
+                        fb_driver, tracker, crawler_config,
+                        cookies=fb_cookies, llm_api_key=llm_api_key,
+                    )
+                    crawler.login()
+                    jobs = crawler.crawl(fb_config)
+                    all_jobs.extend(jobs)
+                    logger.info(f"Facebook: found {len(jobs)} new jobs")
+                except Exception as e:
+                    logger.error(f"Facebook crawler failed: {e}")
+                finally:
+                    fb_driver.quit()
             else:
                 logger.warning(f"Unknown crawler: {crawler_name}, skipping")
     finally:
