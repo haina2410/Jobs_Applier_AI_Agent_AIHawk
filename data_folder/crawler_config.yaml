@@ -1,5 +1,6 @@
 enabled_crawlers:
   - facebook
+  - linkedin
 
 linkedin:
   filters:
