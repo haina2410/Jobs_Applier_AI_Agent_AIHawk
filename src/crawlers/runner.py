@@ -110,8 +110,8 @@ def run(data_folder: str = "data_folder"):
                     "min_delay": config.rate_limiting.get("min_delay", 2),
                     "max_delay": config.rate_limiting.get("max_delay", 5),
                 }
-                # Facebook uses mbasic (pure HTML) — standard headless Chrome works fine
-                fb_driver = init_browser()
+                # Facebook requires non-headless Chrome to fully render post content
+                fb_driver = init_crawler_browser(headless=False)
                 try:
                     crawler = FacebookCrawler(
                         fb_driver, tracker, crawler_config,

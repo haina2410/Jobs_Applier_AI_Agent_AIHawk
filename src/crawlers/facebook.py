@@ -14,9 +14,9 @@ from langchain_core.messages import HumanMessage
 
 
 class FacebookCrawler(BaseCrawler):
-    """Crawls Facebook group posts via m.facebook.com (mobile site)."""
+    """Crawls Facebook group posts via www.facebook.com with scroll-based pagination."""
 
-    MOBILE_URL = "https://m.facebook.com"
+    BASE_URL = "https://www.facebook.com"
 
     def __init__(self, driver, tracker: Tracker, config: dict, cookies: list, llm_api_key: str):
         super().__init__(driver, tracker, config)
@@ -25,9 +25,9 @@ class FacebookCrawler(BaseCrawler):
         self._post_cache: dict[str, str] = {}
 
     @staticmethod
-    def _to_mobile_url(url: str) -> str:
-        """Convert www/mbasic facebook URL to m.facebook.com."""
-        return re.sub(r"https://(www\.|mbasic\.)?facebook\.com", "https://m.facebook.com", url)
+    def _normalize_url(url: str) -> str:
+        """Ensure URL uses www.facebook.com."""
+        return re.sub(r"https://(m\.|mbasic\.)?facebook\.com", "https://www.facebook.com", url)
 
     @staticmethod
     def _generate_post_id(text: str) -> str:
@@ -35,7 +35,7 @@ class FacebookCrawler(BaseCrawler):
 
     def login(self) -> None:
         logger.info("Logging into Facebook via cookies...")
-        self.driver.get(self.MOBILE_URL)
+        self.driver.get(self.BASE_URL)
         time.sleep(2)
 
         for cookie in self.cookies:
@@ -47,10 +47,9 @@ class FacebookCrawler(BaseCrawler):
             except Exception as e:
                 logger.debug(f"Failed to add cookie {clean.get('name')}: {e}")
 
-        self.driver.get(f"{self.MOBILE_URL}/me")
+        self.driver.get(f"{self.BASE_URL}/me")
         time.sleep(3)
 
-        # Check for login redirect or login form
         current_url = self.driver.current_url
         page_source = self.driver.page_source
         if "/login" in current_url or "login_form" in page_source:
@@ -68,8 +67,8 @@ class FacebookCrawler(BaseCrawler):
 
         all_posts = []
         for group_url in group_urls:
-            mobile_url = self._to_mobile_url(group_url)
-            posts = self._crawl_group_posts(mobile_url, target_posts, max_pages)
+            normalized_url = self._normalize_url(group_url)
+            posts = self._crawl_group_posts(normalized_url, target_posts, max_pages)
             all_posts.extend(posts)
             logger.info(f"Crawled {len(posts)} posts from {group_url}")
 
@@ -131,32 +130,33 @@ class FacebookCrawler(BaseCrawler):
             self.tracker.mark_seen(result["id"], result["url"], result.get("role", ""))
         return jobs
 
-    def _crawl_group_posts(self, mobile_url: str, target_posts: int, max_pages: int) -> list[dict]:
-        """Crawl posts from m.facebook.com group page via scrolling."""
+    def _crawl_group_posts(self, group_url: str, target_posts: int, max_scrolls: int) -> list[dict]:
+        """Crawl posts from Facebook group via scrolling."""
         posts = []
         seen_texts = set()
+        stagnant_rounds = 0
 
-        logger.info(f"Crawling group: {mobile_url}")
-        self.driver.get(mobile_url)
-        time.sleep(3)
+        logger.info(f"Crawling group: {group_url}")
+        self.driver.get(group_url)
+        time.sleep(5)
 
-        for page in range(max_pages):
-            # m.facebook.com uses article or div[data-ft] for posts
-            # Also try story containers and generic post divs
+        # Click "See more" / "Xem thêm" on posts to expand content
+        self._expand_all_posts()
+
+        for scroll in range(max_scrolls):
+            # Facebook post content selectors (ordered by reliability)
             post_selectors = [
-                "article",
-                "div[data-ft]",
-                "div[role='article']",
-                "#m_group_stories_container > div > div",
+                'div[data-ad-comet-preview="message"]',
+                'div[data-ad-preview="message"]',
+                'div.x126k92a',
             ]
-
             post_elements = []
             for sel in post_selectors:
                 post_elements = self.driver.find_elements(By.CSS_SELECTOR, sel)
                 if post_elements:
                     break
 
-            new_on_page = 0
+            new_on_scroll = 0
             for el in post_elements:
                 try:
                     text = el.text.strip()
@@ -166,57 +166,52 @@ class FacebookCrawler(BaseCrawler):
                     if text_key in seen_texts:
                         continue
                     seen_texts.add(text_key)
-                    posts.append({"text": text, "group_url": mobile_url})
-                    new_on_page += 1
+                    posts.append({"text": text, "group_url": group_url})
+                    new_on_scroll += 1
                 except Exception:
                     continue
 
-            logger.info(f"Page {page + 1}/{max_pages}: {new_on_page} new posts, {len(posts)} total")
+            logger.info(f"Scroll {scroll + 1}/{max_scrolls}: {new_on_scroll} new, {len(posts)} total")
 
             if len(posts) >= target_posts:
                 break
 
-            # Try pagination: look for "See more posts" link or scroll
-            next_link = self._find_pagination_link()
-            if next_link:
-                self.driver.get(next_link)
-                time.sleep(2)
-            else:
-                # Scroll down to trigger lazy loading on m.facebook.com
-                last_height = self.driver.execute_script("return document.body.scrollHeight")
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(3)
-                new_height = self.driver.execute_script("return document.body.scrollHeight")
-                if new_height == last_height:
-                    logger.info("No more content to load")
+            if new_on_scroll == 0:
+                stagnant_rounds += 1
+                if stagnant_rounds >= 3:
+                    logger.info("No new posts after 3 scrolls, stopping")
                     break
+            else:
+                stagnant_rounds = 0
+
+            # Scroll down to load more posts
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(3)
+
+            # Expand new "See more" links after scroll
+            self._expand_all_posts()
 
         return posts[:target_posts]
 
-    def _find_pagination_link(self) -> str | None:
-        """Find 'See more posts' or equivalent pagination link."""
+    def _expand_all_posts(self):
+        """Click all 'See more' / 'Xem thêm' links to expand post content."""
         try:
-            links = self.driver.find_elements(By.TAG_NAME, "a")
-            for link in links:
-                text = link.text.strip().lower()
-                href = link.get_attribute("href") or ""
-                keywords = [
-                    "see more posts", "xem thêm bài viết",
-                    "more posts", "xem thêm",
-                    "see more", "older posts",
-                ]
-                if any(kw in text for kw in keywords):
-                    if href.startswith("http"):
-                        return href
-                    elif href.startswith("/"):
-                        return f"{self.MOBILE_URL}{href}"
-        except Exception as e:
-            logger.debug(f"Error finding pagination link: {e}")
-        return None
+            see_more_links = self.driver.find_elements(
+                By.XPATH,
+                "//div[@role='button' and (contains(text(), 'See more') or contains(text(), 'Xem thêm'))]"
+            )
+            for link in see_more_links[:10]:
+                try:
+                    link.click()
+                    time.sleep(0.3)
+                except Exception:
+                    continue
+        except Exception:
+            pass
 
     def _get_llm(self):
-        from src.libs.resume_and_cover_builder.llm.llm_factory import LLMFactory
-        return LLMFactory.create_llm(self.llm_api_key)
+        from src.libs.resume_and_cover_builder.llm.llm_factory import create_llm
+        return create_llm(self.llm_api_key)
 
     def _llm_classify_job_posts(self, posts: list[dict]) -> list[dict]:
         if not posts:

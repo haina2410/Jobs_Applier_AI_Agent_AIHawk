@@ -38,12 +38,12 @@ def cookies():
     return [{"name": "c_user", "value": "123", "domain": ".facebook.com"}]
 
 
-def test_mobile_url_conversion():
-    assert FacebookCrawler._to_mobile_url("https://www.facebook.com/groups/test123") == "https://m.facebook.com/groups/test123"
+def test_normalize_url():
+    assert FacebookCrawler._normalize_url("https://m.facebook.com/groups/test123") == "https://www.facebook.com/groups/test123"
 
 
-def test_mobile_url_already_mobile():
-    assert FacebookCrawler._to_mobile_url("https://m.facebook.com/groups/test123") == "https://m.facebook.com/groups/test123"
+def test_normalize_url_already_www():
+    assert FacebookCrawler._normalize_url("https://www.facebook.com/groups/test123") == "https://www.facebook.com/groups/test123"
 
 
 def test_generate_post_id():
