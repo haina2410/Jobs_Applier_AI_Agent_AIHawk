@@ -16,7 +16,7 @@ JOB_SUITABILITY_SCORE = 7
 JOB_MAX_APPLICATIONS = 5
 JOB_MIN_APPLICATIONS = 1
 
-LLM_MODEL_TYPE = 'mock'
+LLM_MODEL_TYPE = 'ollama'
 LLM_MODEL = 'GLM-4.7'
 # Only required for OLLAMA models
 LLM_API_URL = 'https://mkp-api.fptcloud.com'

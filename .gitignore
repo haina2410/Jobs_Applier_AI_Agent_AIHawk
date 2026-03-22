@@ -34,8 +34,7 @@ MANIFEST
 chrome_profile/*
 data_folder/output/*
 data_folder/secrets.yaml
-data_folder/crawled_jobs.json
-data_folder/crawler_config.yaml
+data_folder/facebook.com.cookies.json
 answers.json
 # PyInstaller
 # Usually these files are written by a python script from a template

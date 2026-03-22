@@ -1,0 +1,30 @@
+enabled_crawlers:
+  - facebook
+
+linkedin:
+  filters:
+    keywords: "Software Engineer"
+    location: "Ho Chi Minh City, Vietnam"
+    experience_level: ["junior", "mid"]
+    job_type: ["full-time"]
+    work_type: ["remote"]
+    date_posted: "past_24h"
+  max_jobs_per_run: 10
+  max_pages: 3
+
+rate_limiting:
+  min_delay: 2
+  max_delay: 5
+
+facebook:
+  group_urls:
+    - "https://www.facebook.com/groups/ithotjobs.tuyendungit.vieclamcntt.susudev/?sorting_setting=CHRONOLOGICAL"
+  cookies_file: "facebook.com.cookies.json"
+  target_posts: 5
+  max_pages: 3
+  filter_remote_only: false
+
+output:
+  generate_resume: false
+  generate_cover_letter: false
+  style: "Default"
