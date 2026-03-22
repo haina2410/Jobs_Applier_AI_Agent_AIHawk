@@ -56,18 +56,30 @@ def test_build_search_url():
     assert "f_TPR=r604800" in url
 
 
-def test_login_injects_cookie(mock_driver, tracker, config):
-    crawler = LinkedInCrawler(mock_driver, tracker, config, li_at_cookie="fake_cookie")
+def test_login_injects_cookies(mock_driver, tracker, config):
+    cookies = {"li_at": "fake_cookie", "li_rm": "remember_me"}
+    crawler = LinkedInCrawler(mock_driver, tracker, config, cookies=cookies)
     mock_driver.find_elements.return_value = [MagicMock()]
     crawler.login()
-    mock_driver.add_cookie.assert_called_once()
-    cookie = mock_driver.add_cookie.call_args[0][0]
-    assert cookie["name"] == "li_at"
-    assert cookie["value"] == "fake_cookie"
+    assert mock_driver.add_cookie.call_count == 2
+    injected = {call[0][0]["name"]: call[0][0]["value"] for call in mock_driver.add_cookie.call_args_list}
+    assert injected["li_at"] == "fake_cookie"
+    assert injected["li_rm"] == "remember_me"
 
 
-def test_login_raises_on_expired_cookie(mock_driver, tracker, config):
-    crawler = LinkedInCrawler(mock_driver, tracker, config, li_at_cookie="expired")
+def test_login_succeeds_via_url_check(mock_driver, tracker, config):
+    """Login succeeds when URL contains /feed even if no CSS selectors match."""
+    cookies = {"li_at": "valid_cookie"}
+    crawler = LinkedInCrawler(mock_driver, tracker, config, cookies=cookies)
     mock_driver.find_elements.return_value = []
+    mock_driver.current_url = "https://www.linkedin.com/feed/"
+    crawler.login()  # Should not raise
+
+
+def test_login_raises_on_redirect_to_login(mock_driver, tracker, config):
+    cookies = {"li_at": "expired"}
+    crawler = LinkedInCrawler(mock_driver, tracker, config, cookies=cookies)
+    mock_driver.find_elements.return_value = []
+    mock_driver.current_url = "https://www.linkedin.com/login"
     with pytest.raises(RuntimeError, match="cookie"):
         crawler.login()

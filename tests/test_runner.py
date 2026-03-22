@@ -28,7 +28,7 @@ def _setup_data_folder(tmp_path):
 
 
 @patch("src.crawlers.runner.Resume")
-@patch("src.crawlers.runner.init_browser")
+@patch("src.crawlers.runner.init_crawler_browser")
 @patch("src.crawlers.linkedin.LinkedInCrawler.login")
 @patch("src.crawlers.linkedin.LinkedInCrawler.search_jobs")
 @patch("src.crawlers.linkedin.LinkedInCrawler.scrape_job")

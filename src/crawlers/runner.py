@@ -1,6 +1,8 @@
 import base64
+import tempfile
 from pathlib import Path
 
+import undetected_chromedriver as uc
 import yaml
 
 from src.logging import logger
@@ -10,6 +12,22 @@ from src.utils.chrome_utils import init_browser
 from src.crawlers.config import CrawlerConfig
 from src.crawlers.tracker import Tracker
 from src.crawlers.linkedin import LinkedInCrawler
+
+
+def init_crawler_browser() -> uc.Chrome:
+    """Init undetected-chromedriver for crawling (avoids bot detection)."""
+    options = uc.ChromeOptions()
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("window-size=1200,800")
+    options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")
+    try:
+        driver = uc.Chrome(options=options, headless=True)
+        logger.debug("Undetected Chrome browser initialized for crawling.")
+        return driver
+    except Exception as e:
+        logger.error(f"Failed to initialize crawler browser: {e}")
+        raise RuntimeError(f"Failed to initialize crawler browser: {e}")
 
 
 def _load_secrets(secrets_path: Path) -> dict:
@@ -44,16 +62,15 @@ def run(data_folder: str = "data_folder"):
     # Init tracker
     tracker = Tracker(data_path / "crawled_jobs.json")
 
-    # Init crawl driver
-    crawl_driver = init_browser()
+    # Init crawl driver (undetected-chromedriver to avoid LinkedIn bot detection)
+    crawl_driver = init_crawler_browser()
 
     all_jobs = []
     try:
         for crawler_name in config.enabled_crawlers:
             if crawler_name == "linkedin":
                 li_cookies = secrets.get("linkedin_cookies", {})
-                li_at = li_cookies.get("li_at", "")
-                if not li_at:
+                if not li_cookies.get("li_at"):
                     logger.error("Missing linkedin_cookies.li_at in secrets.yaml, skipping LinkedIn")
                     continue
 
@@ -62,7 +79,7 @@ def run(data_folder: str = "data_folder"):
                     "min_delay": config.rate_limiting.get("min_delay", 2),
                     "max_delay": config.rate_limiting.get("max_delay", 5),
                 }
-                crawler = LinkedInCrawler(crawl_driver, tracker, crawler_config, li_at_cookie=li_at)
+                crawler = LinkedInCrawler(crawl_driver, tracker, crawler_config, cookies=li_cookies)
 
                 try:
                     crawler.login()

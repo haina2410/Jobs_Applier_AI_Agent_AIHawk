@@ -1,3 +1,4 @@
+import time
 from urllib.parse import urlencode
 
 from selenium.webdriver.common.by import By
@@ -16,26 +17,63 @@ class LinkedInCrawler(BaseCrawler):
 
     JOBS_PER_PAGE = 25
 
-    def __init__(self, driver, tracker: Tracker, config: dict, li_at_cookie: str):
+    def __init__(self, driver, tracker: Tracker, config: dict, cookies: dict):
         super().__init__(driver, tracker, config)
-        self.li_at_cookie = li_at_cookie
+        self.cookies = cookies
 
     def login(self) -> None:
-        logger.info("Logging into LinkedIn via cookie...")
+        logger.info("Logging into LinkedIn via cookies...")
         self.driver.get("https://www.linkedin.com")
-        self.driver.add_cookie({
-            "name": "li_at",
-            "value": self.li_at_cookie,
-            "domain": ".linkedin.com",
-        })
+        time.sleep(2)
+
+        # Inject all provided LinkedIn cookies
+        for name, value in self.cookies.items():
+            if value:
+                self.driver.add_cookie({
+                    "name": name,
+                    "value": value,
+                    "domain": ".linkedin.com",
+                })
+                logger.debug(f"Injected cookie: {name}")
+
         self.driver.get("https://www.linkedin.com/feed/")
-        indicators = self.driver.find_elements(By.CSS_SELECTOR, ".feed-identity-module, .global-nav__me")
-        if not indicators:
+        time.sleep(3)
+
+        # Check if we're logged in — LinkedIn uses various selectors across versions
+        logged_in_selectors = [
+            ".feed-identity-module",
+            ".global-nav__me",
+            ".global-nav__primary-items",
+            "[data-control-name='identity_welcome_message']",
+            ".scaffold-layout__main",
+        ]
+        for selector in logged_in_selectors:
+            indicators = self.driver.find_elements(By.CSS_SELECTOR, selector)
+            if indicators:
+                logger.info(f"LinkedIn login successful (matched: {selector})")
+                return
+
+        # If no selector matched, check if we're on a logged-in page by URL
+        current_url = self.driver.current_url
+        if "/feed" in current_url or "/mynetwork" in current_url:
+            logger.info(f"LinkedIn login successful (URL: {current_url})")
+            return
+
+        # Check if we got redirected to login page
+        if "/login" in current_url or "/checkpoint" in current_url:
             raise RuntimeError(
-                "LinkedIn login failed — li_at cookie may be expired. "
-                "Please refresh your li_at cookie in secrets.yaml."
+                "LinkedIn login failed — redirected to login/checkpoint page. "
+                "Your li_at cookie may be expired. Please refresh it in secrets.yaml."
             )
-        logger.info("LinkedIn login successful")
+
+        # Last resort: check page title
+        title = self.driver.title.lower()
+        if "linkedin" in title and "login" not in title and "join" not in title:
+            logger.info(f"LinkedIn login likely successful (title: {self.driver.title})")
+            return
+
+        logger.warning(f"LinkedIn login uncertain — URL: {current_url}, title: {self.driver.title}")
+        logger.warning("Proceeding anyway — if crawling fails, refresh your cookies in secrets.yaml.")
 
     @staticmethod
     def build_search_url(filters: dict) -> str:
