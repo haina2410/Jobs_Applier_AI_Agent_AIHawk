@@ -55,11 +55,12 @@ uv run pytest
 
 - `base.py` — `BaseCrawler` ABC with template `crawl()` method (search → dedup → scrape)
 - `linkedin.py` — `LinkedInCrawler` using cookie auth + undetected-chromedriver. Searches via URL params, parses job cards, scrapes full descriptions.
+- `facebook.py` — `FacebookCrawler` using mbasic.facebook.com (pure HTML, no JS). Crawls group posts, LLM classifies job listings, LLM extracts structured fields. Optional remote-only filter.
 - `tracker.py` — `Tracker` class for JSON-based dedup across runs (`data_folder/crawled_jobs.json`)
 - `config.py` — `CrawlerConfig` dataclass with filter mappings (experience level, job type, work type, date posted)
 - `runner.py` — Entry point. Loads config, runs enabled crawlers, feeds jobs to `ResumeFacade` for PDF generation.
 
-**Config:** `data_folder/crawler_config.yaml` (see `data_folder_example/` for template). LinkedIn cookies (`li_at`, `li_rm`) go in `secrets.yaml`.
+**Config:** `data_folder/crawler_config.yaml` (see `data_folder_example/` for template). LinkedIn cookies (`li_at`, `li_rm`) go in `secrets.yaml`. Facebook cookies exported as JSON file (`facebook.com.cookies.json` in data_folder).
 
 ### Data Models
 
