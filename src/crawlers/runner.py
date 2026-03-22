@@ -110,18 +110,21 @@ def run(data_folder: str = "data_folder"):
                     "min_delay": config.rate_limiting.get("min_delay", 2),
                     "max_delay": config.rate_limiting.get("max_delay", 5),
                 }
-                crawler = FacebookCrawler(
-                    crawl_driver, tracker, crawler_config,
-                    cookies=fb_cookies, llm_api_key=llm_api_key,
-                )
-
+                # Facebook uses mbasic (pure HTML) — standard headless Chrome works fine
+                fb_driver = init_browser()
                 try:
+                    crawler = FacebookCrawler(
+                        fb_driver, tracker, crawler_config,
+                        cookies=fb_cookies, llm_api_key=llm_api_key,
+                    )
                     crawler.login()
                     jobs = crawler.crawl(fb_config)
                     all_jobs.extend(jobs)
                     logger.info(f"Facebook: found {len(jobs)} new jobs")
                 except Exception as e:
                     logger.error(f"Facebook crawler failed: {e}")
+                finally:
+                    fb_driver.quit()
             else:
                 logger.warning(f"Unknown crawler: {crawler_name}, skipping")
     finally:
