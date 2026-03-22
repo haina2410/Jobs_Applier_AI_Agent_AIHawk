@@ -9,6 +9,7 @@ import yaml
 class CrawlerConfig:
     enabled_crawlers: list[str]
     linkedin: dict[str, Any] = field(default_factory=dict)
+    facebook: dict[str, Any] = field(default_factory=dict)
     rate_limiting: dict[str, Any] = field(default_factory=lambda: {"min_delay": 2, "max_delay": 5})
     output: dict[str, Any] = field(default_factory=lambda: {
         "generate_resume": True,
@@ -58,6 +59,7 @@ class CrawlerConfig:
         return cls(
             enabled_crawlers=data["enabled_crawlers"],
             linkedin=data.get("linkedin", {}),
+            facebook=data.get("facebook", {}),
             rate_limiting=data.get("rate_limiting", {"min_delay": 2, "max_delay": 5}),
             output=data.get("output", {
                 "generate_resume": True,
