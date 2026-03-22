@@ -122,12 +122,20 @@ class FacebookCrawler(BaseCrawler):
         jobs = []
         for i, result in enumerate(new_results):
             logger.info(f"Extracting job {i+1}/{len(new_results)}")
+            job = None
             try:
                 job = self.scrape_job(result["id"])
                 jobs.append(job)
             except Exception as e:
                 logger.error(f"Failed to extract job from post: {e}")
-            self.tracker.mark_seen(result["id"], result["url"], result.get("role", ""))
+            self.tracker.mark_seen(
+                result["id"], result["url"],
+                role=job.role if job else "",
+                company=job.company if job else "",
+                location=job.location if job else "",
+                description=job.description if job else "",
+                source="facebook",
+            )
         return jobs
 
     def _crawl_group_posts(self, group_url: str, target_posts: int, max_scrolls: int) -> list[dict]:

@@ -40,12 +40,20 @@ class BaseCrawler(ABC):
         jobs = []
         for i, result in enumerate(new_results):
             logger.info(f"Scraping job {i+1}/{len(new_results)}: {result.get('role', 'unknown')}")
+            job = None
             try:
                 job = self.scrape_job(result["url"])
                 jobs.append(job)
             except Exception as e:
                 logger.error(f"Failed to scrape {result['url']}: {e}")
-            self.tracker.mark_seen(result["id"], result["url"], result.get("role", ""))
+            self.tracker.mark_seen(
+                result["id"], result["url"],
+                role=job.role if job else result.get("role", ""),
+                company=job.company if job else result.get("company", ""),
+                location=job.location if job else "",
+                description=job.description if job else "",
+                source="linkedin",
+            )
             if i < len(new_results) - 1:
                 delay = uniform(min_delay, max_delay)
                 logger.debug(f"Waiting {delay:.1f}s before next request")

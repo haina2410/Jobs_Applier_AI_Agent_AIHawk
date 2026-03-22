@@ -33,10 +33,15 @@ class Tracker:
     def filter_unseen(self, results: list[dict]) -> list[dict]:
         return [r for r in results if r["id"] not in self.seen]
 
-    def mark_seen(self, job_id: str, url: str, role: str = ""):
+    def mark_seen(self, job_id: str, url: str, role: str = "", company: str = "",
+                  location: str = "", description: str = "", source: str = ""):
         self.seen[job_id] = {
             "url": url,
             "role": role,
+            "company": company,
+            "location": location,
+            "description": description[:500] if description else "",
+            "source": source,
             "crawled_at": datetime.now(timezone.utc).isoformat(),
         }
         self._save()
