@@ -21,6 +21,7 @@ pdfminer.six==20221105
 pytest>=8.3.3
 python-dotenv~=1.0.1
 PyYAML~=6.0.2
+google-genai>=1.0.0
 regex==2024.7.24
 reportlab==4.2.2
 selenium==4.9.1

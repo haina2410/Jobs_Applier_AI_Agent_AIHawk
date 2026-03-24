@@ -1,0 +1,31 @@
+# Configuration for each person using the job filter & CV customization system
+# Each person has:
+#   - folder: subfolder name under workspace/ (must contain cv/CV.tex and cv/cv_prompt.txt)
+#   - keywords: list of keyword groups, ALL groups must match for a job to be selected
+#     Each group is a regex pattern (case-insensitive). Use | for OR within a group.
+#
+# Logic: Job matches if ALL keyword groups match (AND between groups, OR within each group)
+# Example: keywords: ["python", "remote|freelance|part.?time"]
+#   => Job must mention "python" AND at least one of "remote", "freelance", or "parttime/part-time"
+
+persons:
+  - name: Thang
+    folder: 01_Thang
+    keywords:
+      - "stack includes"
+      # - "python"
+      - "remote|freelance|part.?time|Remote"
+
+  - name: Nhan
+    folder: 02_Nhan
+    keywords:
+      - "Vietnamese"
+      - "java"
+      - "remote|freelance|part.?time"
+
+  - name: Nam
+    folder: 03_Nam
+    keywords:
+      - "Vietnamese"
+      - "python|javascript"
+      - "remote|freelance|part.?time"
