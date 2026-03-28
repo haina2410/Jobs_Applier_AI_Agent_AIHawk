@@ -165,3 +165,10 @@ mono_crash.*
 
 job_applications/
 debug_steps/
+# LaTeX auxiliary files
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
